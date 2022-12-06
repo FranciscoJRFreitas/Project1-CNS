@@ -1,0 +1,776 @@
+\documentclass[a4paper, 11pt]{article}
+
+\usepackage{comment} % habilita el uso de comentarios en varias lineas (\ifx \fi) 
+\usepackage{lipsum} %Este paquete genera texto del tipo  Lorem Ipsum. 
+\usepackage{fullpage} % cambia el margen
+
+\usepackage{multicol}
+\usepackage{caption}
+\usepackage{mwe}
+\usepackage{adjustbox}
+\usepackage{multirow}
+\usepackage{booktabs}
+
+\usepackage{soul}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{arydshln}
+\usepackage{bm}
+
+\usepackage[utf8]{inputenc}
+
+\makeatletter
+\def\thickhline{%
+  \noalign{\ifnum0=`}\fi\hrule \@height \thickarrayrulewidth \futurelet
+   \reserved@a\@xthickhline}
+\def\@xthickhline{\ifx\reserved@a\thickhline
+               \vskip\doublerulesep
+               \vskip-\thickarrayrulewidth
+             \fi
+      \ifnum0=`{\fi}}
+\makeatother
+
+\newlength{\thickarrayrulewidth}
+\setlength{\thickarrayrulewidth}{4\arrayrulewidth}
+
+
+\newtheorem{theorem}{Proposition}
+
+\begin{document}
+
+\hspace*{-\parindent}%
+\begin{minipage}[t]{0.7\linewidth}
+\vspace{-0.8cm}
+\raggedright
+	%\noindent
+	\large\textbf{Project 1} \\
+	\textbf{Computational Numerical Statistics} \\
+	\normalsize DM, FCT-UNL \\
+	\textbf{2022-2023}\\
+	{\bf Group 6 : Afonso Ribeiro 59895, Franscico Freitas 60313,  Miguel Santos 64474 and Pedro Anjos 66519}
+\end{minipage}
+\begin{minipage}{0.3\linewidth}
+\raggedleft
+	\includegraphics[scale=0.12]{logo_nova-st_rgb_vert_positivo.png}
+\end{minipage}
+\\
+
+\par\noindent\rule{\textwidth}{0.4pt}
+
+\section{Introduction}
+
+This project encompasses the topics of Random number generation and Monte Carlo methods. \\
+First, we start by analyzing, studying, and using the {\bf inverse-transform (IT)} and the {\bf accept-rejection (AR)} methods (for random number generation). \\
+Following, we use some Monte Carlo methods for integration, i.e.,  we use {\bf naive Monte Carlo}, the Monte Carlo method based on the {\bf antithetic variable} technique, the Monte Carlo method based on the {\bf control variate} technique, and the Monte Carlo method based on {\bf importance sampling} to estimate the value of an integral.
+
+\section{Random Number generation}
+The building block of a simulation is the ability to generate random numbers, where a random number represents the value of a random variable uniformly distributed on (0,1) \cite{simulation}. This section presents two methods that enable the generation of random variables from the U(0,1).
+\subsection{The Inverse Transform(ation) Method (ITM)}
+
+\subsubsection{Continuous Random Variables}
+% This method is based on the proposition:
+\begin{theorem}
+Let  U $\sim$ U(0, 1) random variable. For any continuous c.d.f. F , the random variable X defined by
+
+\centerline{ $X = F^{-1} (U) $}
+
+\noindent has c.d.f. F. ($F^{-1} (u)$ is defined to equal that value x for which $F(x) = u $).
+
+\end{theorem}
+\noindent \underline{Proof} of this proposition on \cite{first_course_in_probability} (section 10)
+
+\noindent{{\bf Important to mention} that} 
+\begin{itemize}
+    \item This procedure can only be used when $F^{-1}$ exists and its expression can easily be obtained
+    \item This method does not generalize well to higher dimensions
+\end{itemize}
+
+
+\noindent Thus, applied to continuous random variables, this algorithm can be {\bf summarized into the following steps}
+
+\begin{enumerate}
+    \item Solve u = F(x) for x ($ = F^{-1}(u)$)
+    \item Generate an observation u from a U(0, 1) distribution
+    \item Set $x = F^{-1}(u)$ (obtained in \textit{1})
+    \item Repeat steps 2 and 3 until the desired sample size is reached
+\end{enumerate}
+
+\subsubsection{Discrete Random Variables \cite{first_course_in_probability}}
+\begin{theorem} 
+Let Z be a discrete random variable with p.m.f.
+
+\centerline{$P(X = x_j ) = p_j , \: \: j = 0, 1, . . . , X_j \sum_{j} p_j = 1$}
+
+\noindent 
+To simulate X for which $P(X = x_j) = p_j$, if u is a realization of U $\sim$ U(0, 1), then
+
+$$
+x= \begin{cases}x_{0} & \text { if } u \leq p_{0} \\ x_{1} & \text { if } p_{0}<u \leq p_{0}+p_{1} \\ \vdots & \\ x_{j} & \text { if } \sum_{i=0}^{j-1} p_{i}<u \leq \sum_{i=0}^{j} p_{i}, \quad j \geq 2 \\ \vdots & \end{cases}
+$$
+
+\noindent is a realization of X
+
+\noindent Since,
+
+$$
+P\left(X=x_{j}\right)=P\left(\sum_{i=0}^{j-1} p_{i}<U \leq \sum_{i=0}^{j} p_{i}\right)=p_{j}, j \geq 1
+$$
+
+\noindent it follows that X has the desired distribution.
+\end{theorem}
+
+\noindent Thus, applied to discrete random variables, this algorithm can be {\bf summarized into the following steps}
+
+\begin{enumerate}
+    \item Generate an observation u from a U(0, 1) distribution 
+    \item If $\bm{u \le p_0}$ set $\bm{x = x_0}$; Else find $\bm{j \ge 1}$ such that $\bm{\sum_{i=0}^{j-1} p_i \: <  U \: \le \sum_{i=0}^{j} p_i}$ and set $\bm{x = x_j}$
+    \item Repeat the previous steps, until the desired sample size is reached
+\end{enumerate}
+
+
+\subsection{The Acceptance-Rejection Method (ARM)}
+
+The idea of the \underline{acceptance-rejection method (ARM)} is to use a  probability function $g(x)$ that is easy to sample, called the {\bf candidate density function}, and then reject the observations that are unlikely under the {\bf target density function} $f(x)$ . 
+
+\noindent {\bf Ideally, one wants a rejection rate below 20 percent}
+
+\subsubsection{Continuous Random Variables}
+
+Let X be a continuous random variable with p.d.f. $f$ from which it is \underline{not easy (or possible) to sample from} (i.e., not easy or possible to find $F^{-1}$) and assume we \underline{find a density function} g(x) from which we can easily simulate from and such that
+
+\centerline{$\exists_{M > 0} : f(x) \le Mg(x), \: \forall_x$}
+
+\noindent Thus, applied to continuous random variables, this algorithm can be {\bf summarized into the following steps}
+
+\begin{enumerate}
+    \item Generate a candidate observation $x_c$ from $g$ 
+    \item Compute the probability of accepting $x_c$ as
+    
+    \centerline{$\alpha = \frac{1}{M} \: \frac{f(x_c)}{g(x_c)}$}
+    
+    \item Generate an observation $u$ from a U(0, 1) distribution 
+    
+    \item If $u \le \alpha$ set $x = x_c$. Otherwise go back to step 1.
+    
+    \item Repeat the previous steps, until the desired sample size is reached
+\end{enumerate}
+
+\noindent {\bf Is also to conclude : }
+\begin{itemize}
+    \item The random variable X generated by the ARM has p.d.f. $f$.
+    \item The number of iterations of the algorithm that are needed is a geometric random variable with mean M
+\end{itemize}
+    
+\subsubsection{Discrete Random Variables}
+Let X be a discrete random variable with p.m.f. $f (x) = P(X = x)$ and support $D_X$ from which it is \underline{not easy (or possible) to directly sample from} (i.e., not easy or possible to find $F^{-1}$) and assume we have \underline{a random variable} Y with p.m.f. $g(x) = P(Y = x)$, \underline{with the same support as X} (i.e., such that $D_Y = D_X$), from which we can easily simulate from and such that
+
+\centerline{$\exists_{M > 0} : f(x) \le Mg(x), \: \forall_{D_x}$}
+
+\noindent Thus, applied to discrete random variables, this algorithm can be {\bf summarized into the following steps}
+
+\begin{enumerate}
+    \item Generate a candidate observation $x_c$ from $g$ 
+    \item Compute the probability of accepting $x_c$ as
+    
+    \centerline{$\alpha = \frac{1}{M} \: \frac{f(x_c)}{g(x_c)}$}
+    
+    \item Generate an observation $u$ from a U(0, 1) distribution 
+    
+    \item If $u \le \alpha$ set $x = x_c$. Otherwise go back to step 1.
+    
+    \item Repeat the previous steps, until the desired sample size is reached
+\end{enumerate}
+
+
+\section{Monte Carlo Methods}
+Monte Carlo methods are a broad class of computational algorithms that allow us to
+perform random experiments on a computer. In this project, we use this methods to solving/approximating \underline{deterministic problems}, more specific, {\bf integration}.
+\subsection{Integration}
+Suppose that we want to integrate the one-dimensional function $g(x)$ in the interval $[a, b]$ \\
+\centerline{$ \mathcal{I} = \int_{a}^{b} g(x) \: dx \:, \: a < b $}
+and that the integral does not have an analytical or simple solution. We can use Monte Carlo methods to estimate the value of this integral (just write the integral as the expectation of some random variable, here's how) \\
+Assuming $b - a \neq 0$, the bounded integral can be written as \\
+\centerline{$\mathcal{I}=\int_a^b(b-a) \frac{1}{b-a} g(x) \mathrm{d} x=(b-a) \int_a^b g(x) f(x) \mathrm{d} x=(b-a) E[g(X)]$} where $X \sim U(a, b)$ with p.d.f. $f$. Now it's only necessary to  estimate ${\bf E[g(X)] }$ (which is possible with MC methods).
+
+\pagebreak
+\noindent
+Consider a random sample $X_1,...,X_m$ from the population $X \sim U(a, b)$ and $g(X_1),...,g(X_m)$ a random sample from $g(X)$, the Monte Carlos estimator of $\mathcal{I}$ is \\
+\centerline{$\mathcal{I}_{M C}=(b-a) \frac{1}{m} \sum_{i=1}^m g\left(X_i\right)$}
+which is an \underline{unbiased estimator} of $\mathcal{I}$: \\
+\centerline{$\begin{aligned} E\left[\mathcal{I}_{M C}\right] &=\frac{b-a}{m} \sum_{i=1}^m E\left[g\left(X_i\right)\right] \\ &=(b-a) E[g(X)] \\ &=(b-a) \int_a^b \frac{1}{b-a} g(x) \mathrm{d} x \\ &=\int_a^b g(x) \mathrm{d} x=\mathcal{I} \end{aligned}$}
+We can also get that \\
+\centerline{$\begin{aligned} V\left[\mathcal{I}_{M C}\right] &=\left(\frac{b-a}{m}\right)^2 \sum_{i=1}^m V\left[g\left(X_i\right)\right] \\ &=\left(\frac{b-a}{m}\right)^2 m V[g(X)] \\ &=(b-a)^2 \frac{V(g(X))}{m} \end{aligned}$}
+From this formula, we can estimate the variance of the estimator by taking the sample variance of g(X) \\
+\centerline{$\widehat{V\left[\mathcal{I}_{M C}\right]}=\frac{(b-a)^2}{m(m-1)} \sum_{i=1}^m\left(g\left(X_i\right)-\overline{g(X)}\right)^2$}
+Likewise, \\
+\centerline{$\operatorname{SE}\left(\mathcal{I}_{M C}\right)=(b-a) \sqrt{\frac{V(g(X))}{m}}$}
+With this, we get the following steps to estimate $ \mathcal{I} = \int_{a}^{b} g(x) \: dx \:, \: a < b $ with the \underline{Monte Carlo algorithm}
+\begin{enumerate}
+    \item Generate a random sample $x_1,\: .\: .\: .\: ,\: x_m$ from the $U(a, b)$ distribution
+    \item Compute $g(x_1),\: .\: .\: .\: ,\: g(x_m)$
+    \item Compute $\bar{g}=\frac{1}{m} \sum_{i=1}^m g\left(x_i\right)$
+    \item Take $\hat{\mathcal{I}}_{M C}=(b-a) \bar{g}$ and report an estimate of $\mathrm{V}\left(\mathcal{I}_{M C}\right)$ or $\mathbf{S E}\left(\mathcal{I}_{M C}\right)$
+\end{enumerate}
+{\bf Generalizing} to the case where the integral is the mean value of some function g(X) where X has p.d.f. f and support $D_X$ , which can be bounded or unbounded, e.g., \\
+\centerline{$ \mathcal{I} = \int_{D_x} g(x) f(x) \: dx = E[g(X)]$}
+From which, we get \\
+\centerline{$\mathcal{I}_{M C}= \frac{1}{m} \sum_{i=1}^m g\left(X_i\right)$}
+And \\
+\centerline{$E\left[\mathcal{I}_{M C}\right] = \mathcal{I}$ \& $V\left[\mathcal{I}_{M C}\right] = \frac{V(g(X))}{m}$}
+Replacing the step one in the previous version, we obtain the following steps
+\begin{enumerate}
+    \item Generate a random sample $x_1,\: .\: .\: .\: ,\: x_m$ from the distribution of $X$, $f$
+    \item Compute $g(x_1),\: .\: .\: .\: ,\: g(x_m)$
+    \item Compute $\bar{g}=\frac{1}{m} \sum_{i=1}^m g\left(x_i\right)$
+    \item Take $\hat{\mathcal{I}}_{M C}=(b-a) \bar{g}$ and report an estimate of $\mathrm{V}\left(\mathcal{I}_{M C}\right)$ or $\mathbf{S E}\left(\mathcal{I}_{M C}\right)$
+\end{enumerate}
+
+\subsection{Variance Reduction}
+When reporting Monte Carlo {\bf estimates} of $\mathcal{I} = E(g(X))$ it is important to also report the {\bf size of the simulation} \ $m$ and an estimate of the {\bf standard error} of the MC estimator $\widehat{SE(\mathcal{I}_{MC})}$. In general, if we wish that the $SE(\mathcal{I}_{MC})$ is at most $e$, given that $V(g(X)) = \sigma^2$, then $m \ge [\sigma^2 / e^2]$. \\
+The usual was to run various simulations until the variability of an estimator is less than some threshold value but the computational cost of this process was to high. In this section, some techniques are presented that enable the reduce of the variance of the estimator (without the need of a large number of simulations).\\
+But first, it's \underline{important to notice}: {\bf Percentage of variance reduction}
+\begin{itemize}
+    \item If $\mathcal{I}_1$, $\mathcal{I}_2$ are \underline{two estimators} of $\mathcal{I}$ such that $V(\mathcal{I}_2) < V(\mathcal{I}_1)$, then the variance reduction (in percentage) that one gains in using $\mathcal{I}_2$ instead of $\mathcal{I}_1$ is given by \\ \centerline{$100 * \frac{V(\mathcal{I}_2) - V(\mathcal{I}_1)}{V(\mathcal{I}_1)} = 100 * (1 - \frac{V(\mathcal{I}_2)}{V(\mathcal{I}_1)})$}
+\end{itemize}
+
+\subsubsection{Antithetic Variables}
+\begin{theorem}
+Two random variables $X_1$ and $X_2$ are said {\bf antithetic} if $X_1, X_2 \sim_{id} X$ such that $cov(X_1, X_2) < 0$.
+\end{theorem}
+Consider the new random variable $Y = \frac{X_1 + X_2}{2}$ we have that\\
+\centerline{$V(Y) = \frac{1}{4} V(X_1 + X_2) = \frac{1}{4}(V(X_1) + V(X_2) + 2cov(X_1, X_2)$}
+\centerline{$= \frac{1}{4}(2 V(X) + 2cov(X_1, X_2) = \frac{1}{2}(V(X) + cov(X_1, X_2) \le \frac{V(X)}{2}$}
+This means that the variance of the new random variable $Y$ is \underline{reduced at least in half} when compared to the variance of $X_1$ (or $X_2$)\\
+Now supposed that $U \sim U(0,1)$ ($U$, $1-U$ are antithetic) and $X \sim F(.)$ such that X is is simulated via the inverse transform technique (i.e., $X = F^{-1}(U)$). If g is a {\bf continuous monotonic} function then \\
+\centerline{$g(F^{-1}(U))$ has the same distribution as $g(F^{-1}(1-U))$ }
+and\\
+\centerline{$\rho(g(F^{-1}(U)))$, $\rho(g(F^{-1}(1-U))) < 0$}
+Since $g(F^{-1}(U))$ and $g(F^{-1}(1-U))$ are equally distributed then
+\begin{itemize}
+    \item $E(g(F^{-1}(U))) = E(g(F^{-1}(1-U))) = E(g(X))$
+    \item $V(g(F^{-1}(U))) = V(g(F^{-1}(1-U))) = V(g(X))$
+\end{itemize}
+Summarizing, if a Monte Carlo simulation that requires m simulations (where m is even), then
+\begin{itemize}
+    \item generate a random sample $U_1, ..., U_{m/2} from U(0,1)$
+    \item computes $g(F^{-1}(U_i))$ and $g(F^{-1}(1 - U_i))$ for all $i=1,...,m/2$
+    \item and take \\
+    \centerline{$\mathcal{I}_1=\frac{1}{m/2}\sum_{i=1}^{m/2}g(F^{-1}(U_i))$ \: and \: $\mathcal{I}_2=\frac{1}{m/2}\sum_{i=1}^{m/2}g(F^{-1}(1-U_i))$}
+    (which are {\bf unbiased} estimators of $E(g(X)) = \mathcal{I}$)
+\end{itemize}
+\underline{which means it is only necessary the half of the simulations to get variance reduction}.\\
+\pagebreak \\
+Thus, the Monte Carlo estimator (\underline{obtained by antithetic sampling}) is\\
+\centerline{$\mathcal{I}_{ant}=\frac{\mathcal{I}_1 + \mathcal{I}_2}{2}=\frac{2}{m}\sum_{i=1}^{m/2}\frac{g(F^{-1}(U_i)) + g(F^{-1}(1-U_i))}{2}$}
+(which is also an {\bf unbiased} estimator $E(g(X)) = \mathcal{I}$\\
+Therefore, the algorithm for the general procedure of estimating $E(g(X))$ can be summarized in the \underline{following steps}
+\begin{enumerate}
+    \item generate a random sample $u_1, ..., u_{m/2}$ from the $U(0, 1)$ distribution, with $m$ even
+    \item compute $\hat{\mathcal{I}}_1=\frac{1}{m/2}\sum_{i=1}^{m/2}g(F^{-1}(U_i))$ and $\hat{\mathcal{I}}_2=\frac{1}{m/2}\sum_{i=1}^{m/2}g(F^{-1}(1-U_i))$
+    \item compute $\hat{\mathcal{I}}_{ant}=\frac{\mathcal{I}_1 + \mathcal{I}_2}{2}$ and report an estimate of ${\bf SE}(\mathcal{I}_{ant})$
+\end{enumerate}
+When $X$ is itself already U(0,1) then the $step\: 2$ is replace by
+\begin{itemize}
+    \item compute $\hat{\mathcal{I}}_1=\frac{1}{m/2}\sum_{i=1}^{m/2}g(U_i)$ and $\hat{\mathcal{I}}_2=\frac{1}{m/2}\sum_{i=1}^{m/2}g(1-U_i)$
+\end{itemize}
+
+\subsubsection{Control Variate}
+Let's assume there exists a function $h$ such that\\
+\centerline{$\mu = E(h(X))$ is known and $h(X)$ is correlated with $g(X)$}
+In this way, for any $c \in \mathbb{R}$\\
+\centerline{$\mathcal{I}_C = g(X) + c(h(X) - \mu)$}
+is an {\bf unbiased} estimator of $\mathcal{I}$ and this random variable h(X) is called the {\bf control variate}\\
+Using the properties of the variance, we obtain\\
+\centerline{$V(\mathcal{I}_C) = V(g(X)) + c^2V(h(X)) + 2c * cov(g(X),h(X)) $}
+which is a quadratic function in $c$ that attains its minimum at $c=c^\ast$, with \\
+\centerline{$c^\ast = - \frac{cov(g(X),h(X))}{V(h(X))}$}
+For this value of $c$ the variance of the estimator is\\
+\centerline{$V(\mathcal{I}_{C^\ast}) = V(g(X)) - \frac{cov^2(g(X),h(X))}{V(h(X))} = V(g(X))(1 - \rho^2) $}
+with $\rho = cor(g(X),h(X))$, and $\mathcal{I}_{C^\ast} = g(X) + c^\ast(h(X) - \mu)$ the {\bf control variate-based} estimator of $\mathcal{I}$.\\
+The Monte Carlo {\bf control variate} estimator of $\mathcal{I}$ is \\
+\centerline{$\mathcal{I}_{cont} = \frac{1}{m}\sum^m_{i=1}(g(X_i)+c^\ast(h(X_i)-\mu))$}
+\begin{itemize}
+    \item $E(\mathcal{I}_{cont}) = \mathcal{I}$
+    \item $V(\mathcal{I}_{cont}) = \frac{V(\mathcal{I}_{C^\ast})}{m}$
+\end{itemize}
+and the percentage of the variance reduction achieved when using the variable-control-based MC estimator $\mathcal{I}_{cont}$ instead of using the naive MC estimator $\mathcal{I}_{MC}$ is \\
+\centerline{$100 * \frac{V(\mathcal{I}_{MC}) - V(\mathcal{I}_{cont})}{V(\mathcal{I}_{MC})}$}
+Thus, the algorithm can be summarized in the \underline{following steps}
+\begin{enumerate}
+    \item generate a random sample $u_1, ..., u_{m}$ from the $U(0, 1)$ distribution
+    \item compute $c^\ast = - \frac{cov(g(X),h(X))}{V(h(X))}$
+    \item compute $\mathcal{I}_{cont} = \frac{1}{m}\sum^m_{i=1}(g(X_i)+c^\ast(h(X_i)-\mu))$ and $V(\mathcal{I}_{cont}) = \frac{V(\mathcal{I}_{C^\ast})}{m}$
+    \item compute the percentage of variance reduction and report it
+\end{enumerate}
+
+\subsubsection{Importance Sampling}
+Let's assume we want to estimate the value of the integral \\
+\centerline{$ \mathcal{I} = \int g(x) f(x) \: dx = E(g(X))$, where $X \sim f$}
+If \underline{$\phi$ is a "positive"} p.d.f. (it's not required that $\phi$ is positive everywhere, it's enough to have $\phi(x) > 0$ whenever $g(x)f(x) \neq 0$), then we can rewrite the integral as \\
+\centerline{$ \mathcal{I} = \int g(x) \frac{f(x)}{\phi(x)} \phi(x) \: dx = \int h(x)\phi(x)dx = E_{\phi}(h(X))$,}
+where $X \sim \phi$, $\phi$ is called the {\bf importance function} and h(x) {\bf the likelihood ratio} (which works as an adjustment factor). If the $\phi(x)$ can be chosen in a way that $h(x)$ has \underline{small variance}, then $\mathcal{I}$ will be an efficient estimator.\\
+Therefore, the {\bf importance sampling} Monte Carlo estimator of $\mathcal{I} = E_{\phi}(h(X))$ is \\
+\centerline{$\mathcal{I}_{IS} = \frac{1}{m}\sum_{i=1}^{m}h(X_i)\:\:\:\:\:$,where $X_1, . . . , X_m$ is a random sample from $\phi$}
+The choice of this {\bf importance function $\phi$} is very important because a poor choice can compromise the estimate of $\mathcal{I}$, so \underline{the chosen $\phi$ must follow} (essentially) the criteria:
+\begin{itemize}
+    \item It must be easy to simulate from 
+    \item $Var(\mathcal{I}_{IS}) = \frac{V_\phi(h(X))}{m} < Var(\mathcal{I}_{MC})$
+\end{itemize}
+
+\section{Problem Resolution}
+\subsection{1.1}
+
+Before executing any R code we define the pdf function for the Truncated Pareto:
+
+\[f(x) = \alpha \frac{L^\alpha x^{-\alpha-1}}{1-\left(\frac{L}{H}^\alpha\right)}, \qquad \alpha, L > 0, \qquad H> L, \qquad x \in [L,H]\]
+
+Here is the R code for it:
+
+<<>>=
+pdf.pareto = function(x, alpha, L,H){
+    (alpha * L^(alpha) * x^(-alpha-1))/(1 - (L/H)^(alpha))
+}
+@
+
+\break
+\subsubsection{(a) Analytically derive the cumulative distribution function (cdf) $F$ of $X$ as well as its inverse $F^{-1}$}
+
+
+CDF:
+
+\[F(x) =  \frac{\alpha L^\alpha}{1- \left(\frac{L}{H}\right)^\alpha} \int_{L}^{x} u^{-\alpha-1} du \Leftrightarrow \]
+\[\Leftrightarrow F(x) = \frac{\alpha L^\alpha}{1- \left(\frac{L}{H}\right)^\alpha} \left[-\frac{u^{-\alpha}}{\alpha}\right]^x_L \Leftrightarrow\]
+\[\Leftrightarrow \frac{\alpha L^\alpha}{1- \left(\frac{L}{H}\right)^\alpha} \left(-\frac{x^{-\alpha}}{\alpha} - \frac{-L^{-\alpha}}{\alpha}\right) \Leftrightarrow\]
+
+\[\Leftrightarrow F(x) = \frac{1}{1- \left(\frac{L}{H}\right)^\alpha} \left(-L^\alpha x^{-\alpha} - -L^{-\alpha} L^{\alpha} \right) \Leftrightarrow\]
+
+\[\Leftrightarrow F(x) = \frac{1}{1- \left(\frac{L}{H}\right)^\alpha} \left(-L^\alpha x^{-\alpha} - -L^{-\alpha} L^{\alpha} \right) \Leftrightarrow\]
+
+\[\Leftrightarrow F(x) = \frac{1}{1- \left(\frac{L}{H}\right)^\alpha} \left(1 - L^\alpha x^{-\alpha} \right) \Leftrightarrow\]
+
+\[\Leftrightarrow F(x) = \frac{1 - L^\alpha x^{-\alpha}}{1- \left(\frac{L}{H}\right)^\alpha}\]
+
+ITM:
+\[u = \frac{1 - L^\alpha x^{-\alpha}}{1- \left(\frac{L}{H}\right)^\alpha} \Leftrightarrow\]
+\[\Leftrightarrow u\left(1- \left(\frac{L}{H}\right)^\alpha\right) = 1 - L^\alpha x^{-\alpha} \Leftrightarrow\]
+\[\Leftrightarrow u\left(1- \left(\frac{L}{H}\right)^\alpha\right) - 1= -L^\alpha x^{-\alpha} \Leftrightarrow\]
+\[\Leftrightarrow -\frac{u\left(1- \left(\frac{L}{H}\right)^\alpha\right) - 1}{L^\alpha} = x^{-\alpha} \Leftrightarrow\]
+\[\Leftrightarrow \sqrt[-\alpha]{-\frac{u\left(1- \left(\frac{L}{H}\right)^\alpha\right) - 1}{L^\alpha}} = x \Leftrightarrow\]
+
+\[\Leftrightarrow F^{-1}(u) = \sqrt[-\alpha]{-\frac{u\left(1- \left(\frac{L}{H}\right)^\alpha\right) - 1}{L^\alpha}} \]
+
+
+\subsubsection{(b) Describe how the inverse-transform (IT) method for generating samples from continuous distributions, previously described for the general case, applies here. Implement this method in R for generating a random sample of a given size m from a generic $X \sim TruncatedPareto(\alpha, L, H)$ distribution. Make sure your R code checks that all input variables ($m$,$\alpha$,$L$,$H$) are valid - an error message should be returned when this is not the case. Call your routine sim.IT().}
+
+
+<<>>=
+sim.IT = function(m,alpha, L, H){
+    if(L>H) stop("Lower bound greater than Higher bound")
+    else if(alpha <= 0) stop("Alpha must be a positive number")
+    else if(L <= 0) stop("Lower Bound must be a positive number")
+    else if(m <= 0) stop("m must be a positive number")
+    x=0
+    t=0
+    while(t<m){
+        t=t+1
+        u=runif(1,0,1)
+        up = -(u*(1-((L/H)^alpha))-1)
+        down = L^alpha
+        x[t]= (up/down)^(1/(-alpha))
+        
+    }
+    x    
+}
+@
+
+\break
+\subsubsection{(c) Explicitly derive and simplify the expression of the pdf of \\$X \sim TruncatedPareto(0.25, 2, 3)$.}
+\begin{align*}
+  \frac{d}{dx} \frac{0.25 * 2^{0.25} x^{-1.25}}{1-\left(\frac{2}{3}\right)^{0.25}} = \\
+  = \frac{0.25 * 2^{0.25}}{1-\left(\frac{2}{3}\right)^{0.25}} \frac{d}{dx}x^{-1.25} = \\
+  = \frac{1}{4} \sqrt[4]{2} \frac{1}{1-\left(\frac{2}{3}\right)^{0.25}} \frac{-5}{4} x^{-2.25} = \\
+  = \frac{-5}{16} \sqrt[4]{2} \frac{1}{1-\left(\frac{2}{3}\right)^{0.25}} x^{-2.25} = \\
+    = \frac{-5}{2^{\frac{15}{4}}} \frac{1}{1-\left(\frac{2}{3}\right)^{0.25}} x^{-2.25}
+\end{align*}
+
+\break
+\subsubsection{(d) Use routine sim.IT() to generate a sample of size m = 12000 from
+\[X \sim TruncatedPareto(0.25, 2, 3)\]
+Report the first 15 simulated values. Plot the sample histogram with the true pdf
+superimposed. Is there any evidence that your code may not be generating samples
+from the assumed distribution?}
+
+
+<<plot1, fig.pos="h",fig.height=4, fig.width=8, fig.align='center',fig.cap="First 15 simulated values using the IT method">>=
+library(ggplot2)
+set.seed(2447)
+alpha = 0.25
+L = 2
+H = 3
+m = 12000
+set.IT = sim.IT(m,alpha,L,H)
+pareto <- function(x){pdf.pareto(x,alpha,L,H)}
+p1 <- ggplot(data.frame(sample = set.IT[1:15]), aes(x = sample)) +
+     geom_histogram(aes(y = after_stat(density)),
+                   binwidth = 0.2,
+                   breaks=seq(L,H,0.1)) +
+                   geom_function(fun=pareto)
+plot(p1)
+@
+
+15 values is sample size to make any decisive conclusion therefore we cannot conclude that the code is not generating samples correctly. We can see that it has more samples in the beginning than in the end as we want so it can be likely that it is generating samples from the assumed distribution altough not conclusively.
+
+\break
+\subsubsection{(e) Describe how the acceptance-rejection (AR) method for generating samples from continuous distributions, previously described for the general case, applies here. Implement this method in R for generating a random sample of a given size m from a generic $X \sim TruncatedPareto(\alpha, L, H)$ distribution. Make sure your R code checks that all in put variables ($m$, $\alpha$, $L$ and $H$) are valid - an error message should be returned when this is not the case. Besides returning the simulated values of the target distribution, your R routine should also return the simulated values that were rejected plus the rejection rate. Call your routine sim.AR().}
+
+Applying the general AR method to this case, we instantiate $f(x)$ with the pareto distribution's pdf followed by instantiating $g(x)$ with the candidate density function. With $g(x)$ and $f(x)$ we define $h(x)$ which represents the ratio between $f(x)$ and $g(x)$. This allows us to find $M$, maximum of $h(x)$. Since $h(x)$ is the ratio of $f(x)$ and $g(x)$ and $M$ is the maximum of $h(x)$, $Mg(x)$ will always be greater than $f(x)$ therefore $\frac{1}{M}h(x)$ values are between 0 and 1. After defining the three main functions, we define $g(x)$'s CDF and ITM that we will use later for sampling variables.\\
+
+Next comes the sampling. We generate a candidate x.c from $g(x)$ using it's Inverse Transformation $g.ITM$. We calculate the acceptance rate and generate an observation u from a uniform distribution where u is between 0 and 1. If this u is greater than the acceptance rate it means it is outside our target function $f(x)$ and we store it in our rejected sample and generate a new observation u. If it falls under the acceptance rate we accept it and store it in our vectors. We do this a couple of times until we have the desired amount of sample values.
+
+Next step is variable sampling
+<<>>=
+sim.AR = function(m,alpha, L,H){
+    if(L>H) stop("Lower bound greater than Higher bound")
+    else if(alpha <= 0) stop("Alpha must be a positive number")
+    else if(L <= 0) stop("Lower Bound must be a positive number")
+    else if(m <= 0) stop("m must be a positive number")
+    x = vector()
+    x_rej = vector()
+    y = vector()
+    y_rej = vector()
+    f =function (x){ (alpha * L^(alpha) * x^(-alpha-1))/(1 - (L/H)^(alpha)) }
+    g = function(x){alpha*exp((-alpha)*x)}
+    h = function(x){f(x)/g(x)}
+    M = optimize(h, c(L,H),maximum = T)$objective
+    g.CDF=function(x){1-exp(-alpha*x)}
+    g.ITM = function(x){log(1-x)/(-alpha)}
+    for(i in 1:m){
+        u <- 1
+        a <- 0
+        while(u> a){
+            x.c   <- g.ITM(runif(1,g.CDF(2),g.CDF(3))) # O g.CDF aqui serve
+            # para não estar a gerar valores desnecessários 
+            # através da distribuição exponencial
+            a <- f(x.c)/(M*g(x.c)) 
+            u <- runif(1,0,1)
+            if(u > a) {
+                x_rej = c(x_rej, x.c )
+                y_rej = c(y_rej, u*M*g(x.c))
+            }
+        }
+        x <- c(x,x.c)
+        y <- c(y,u*M*g(x.c))
+    }
+    list(x = x,x_rej = x_rej,y = y, y_rej =y_rej,
+         failRate= length(x_rej)/(length(x_rej) + length(x)))
+}
+@ 
+\break
+\subsubsection{(f) Explicitly identify the AR candidate density function for $X \sim TruncatedPareto(0.25, 2, 3)$ and compute by hand the constants of the AR method (namely, $M$ and the acceptance probability $\alpha$). Use the R function optimize() or other to confirm the result that you obtained analytically for $M$.}
+
+We are using $Y \sim Exp(\alpha)$ as our AR candidate density function.
+
+\begin{gather*}
+  \frac{d}{dx} h(x) = \frac{d}{dx}  \frac{0.25 * 2^{0.25} * x^{-1.25}}{1 - \left(\frac{2}{3}\right)^{0.25}}\frac{1}{0.25 e^{-0.25 x_c}} \approx \\
+  e^{0.25 x} \left(\frac{-15.4205}{x^{2.25}} + \frac{3.08411}{x^{1.25}}\right)\\
+%  e^x \left(\frac{-3.85513}{x^{2.25}} + \frac{3.08411}{x^{1.25}}\right) \\
+  \frac{d}{dx} h(x) = 0 \Rightarrow x \approx 5
+\end{gather*}
+
+the derivative is always negative before $5$, therefore it grows in the interval $[-\infty, $5$]$. Since we only consider the interval $[2,3]$ and that interval belongs to a monotonically decreasing interval, $x = 2$ is going to be the point where $M$ will be.
+
+\[h(2) \approx 8.55164 \Leftrightarrow M \approx 8.55164\]
+
+
+<<>>=
+    f = function (x){ (alpha * L^(alpha) * x^(-alpha-1))/(1 - (L/H)^(alpha)) }
+    g = function(x){alpha*exp((-alpha)*x)}
+    h = function(x){f(x)/g(x)}
+    M = optimize(h, c(L,H),maximum = T)
+    M
+@
+
+We can see that the R code gives us values similar to the ones computed by hand.\\
+
+Now that we we have M we can calculate the acceptance probability $\alpha$:
+
+\[\alpha = \frac{1}{M} \frac{0.25 * 2^{0.25} * x_c^{-1.25}}{1 - \left(\frac{2}{3}\right)^{0.25}}\frac{1}{\alpha e^{-\alpha x_c}} \]
+
+\break
+\subsubsection{(g) Use routine sim.AR() to generate a sample of size m = 12000 from
+\[X \sim TruncatedPareto(0.25, 2, 3)\]
+Report the first 15 simulated values of the $X \sim TruncatedPareto(0.25, 2, 3)$ . Report the rejection rate. Plot the sample histogram with the true pdf superimposed. Is there any evidence that your code may not be generating samples from the assumed distribution? Graphically display the hit-miss plot (as done in class – week 2). Note: the two plots requested here should be displayed in a single side-by-side Figure.}
+<<plot2, fig.pos="h",fig.height=4, fig.width=10,fig.align='center', fig.cap="First 15 simulated values using the AR method and the hit-miss plot">>=
+## plot with rejected point and accepted points
+alpha = 0.25
+L = 2
+H = 3
+m=12000
+f =function (x){ (alpha * L^(alpha) * x^(-alpha-1))/(1 - (L/H)^(alpha)) }
+g = function(x){alpha*exp((-alpha)*x)}
+h = function(x){f(x)/g(x)}
+M = optimize(h, c(L,H),maximum = T)$objective
+Mg= function(x){M*g(x)}
+set.AR = sim.AR(m,alpha,L,H)
+pareto <- function(x){pdf.pareto(x,alpha,L,H)}
+
+library(ggplot2)
+library(gridExtra)
+p2 <- ggplot(data.frame(sample = set.AR$x[1:15]), aes(x = sample)) +
+     geom_histogram(aes(y = after_stat(density)),
+                   binwidth = 0.2,
+                   breaks=seq(L,H,0.1)) +
+    geom_function(fun=pareto)
+p3 <- ggplot( ) +
+    geom_point(data.frame(list(x = set.AR$x,y =set.AR$y)),
+               mapping = aes(x = x, y=y),
+               size = 0.05,
+               colour = "black") +
+    geom_point(data.frame(list(x_rej = set.AR$x_rej,y_rej =set.AR$y_rej)),
+               mapping = aes(x = x_rej, y=y_rej),
+               size = 0.05,
+               colour = "red") +
+
+    xlim(L,H) + geom_function(fun=f, aes(colour = "f(x)")) +
+    geom_function(fun=Mg, aes(colour = "Mg(x)")) 
+
+grid.arrange(p2, p3, ncol = 2)
+@
+
+\subsubsection{(h) Find an R package that has a built-in function for generating random samples from the Truncated Pareto distribution. Compare the computational times of that built-in routine with those of routines sim.IT() and sim.AR() (you can use the R routine proc.time() as done in class – week 2). Consider a sample of size m = 65000 in your simulations. Note that this comparison should be made across of a high number of runs (consider nruns = 2000) and thus the mean times and standard deviations should be reported. Which routine is faster?}
+
+<<>>=
+compareTimes = function(m,nruns,alpha,L,H){
+    library(Pareto)
+    v.IT = vector()
+    v.AR = vector()
+    v.Pareto = vector()
+    i=0
+    while(i < nruns){
+#        print(i)
+        ptm <- proc.time()
+        z = sim.IT(m,alpha,L,H)
+        v.IT = c(v.IT,proc.time() -ptm)
+        ptm <- proc.time()
+        z = sim.AR(m,alpha,L,H)
+        v.AR = c(v.AR,proc.time() -ptm)
+        ptm <- proc.time()
+        z=rPareto(m,L,alpha,truncation=H)
+        v.Pareto = c(v.Pareto,proc.time() -ptm)
+        i = i +1
+    }
+    printf <- function(...) invisible(print(sprintf(...)))
+    printf("ITM mean: %f", mean(v.IT))
+    printf("ITM standard deviation: %f", sd(v.IT))
+    printf("ARM mean: %f", mean(v.AR))
+    printf("ARM standard deviation: %f", sd(v.AR))
+    printf("built-in mean: %f", mean(v.Pareto))
+    printf("built-in standard deviation: %f", sd(v.Pareto))
+    
+}
+
+compareTimes(65000,2000,0.25,2,3)
+@ 
+
+The built-in function is the fastest.
+
+\subsection{1.2}
+\subsubsection{(a)}
+
+<<>>=
+simexp=function(n,lam){
+    x=0
+    t=0
+    while(t<n){
+        t=t+1
+        u=runif(1,0,1)
+        x[t]=-log(u)/lam
+    }
+    x
+}
+
+sim.beta = function(n,a,b){
+    if(a <= 0) stop("a must be a positive number")
+    if(b <= 0) stop("b must be a positive number")
+    if(n <= 0) stop("n must be a positive number")
+
+    t=0
+    Ya= 0 
+    Yab= 0
+    for(i in 1:(a+b)){
+        Y = simexp(n,1)
+        if(i <= a) {Ya = Ya + Y}
+        Yab = Yab + Y
+    }
+    Ya/Yab
+}
+@
+
+\subsubsection{(b)}
+<<plot3, fig.pos="h",fig.height=4, fig.width=10,fig.align='center', fig.cap="Beta Distribution Simulation">>=
+set.seed(777)
+a = 3
+b = 1
+m = 11000
+simulation = sim.beta(m,a,b)
+curveFun = function(x){(x^(a-1) * (1-x)^(b-1))/beta(a,b)}
+p4 <- ggplot(data.frame(sample = simulation ), aes(x = sample)) +
+     geom_histogram(aes(y = after_stat(density)),
+                   binwidth = 0.1,
+                   breaks=seq(0,1,0.1)) +
+    geom_function(fun=curveFun)
+
+plot(p4)
+@
+
+The simulation seems to follow the distribution correctly.
+
+\subsubsection{(c) Report the simulation quantiles Q1, Q2 and Q3 referring to the previous subparagraph against the true quantiles of the Beta(3, 1) distribution}
+<<>>=
+set.seed(777)
+sim.compare = rbeta(m,a,b)
+quantile(simulation,type=1)
+quantile(simulation,type=2)
+quantile(simulation,type=3)
+quantile(sim.compare,type=1)
+quantile(sim.compare,type=2)
+quantile(sim.compare,type=3)
+@ 
+
+\break
+\subsection{2.1}
+\subsubsection{(a)}
+
+<<>>=
+set.seed(1111)
+
+f <- function(x){exp(-x^2/2)/sqrt(2*pi)}
+
+i <- integrate(f, 2, Inf)$value; i
+
+@ 
+
+\subsubsection{(b)}
+<<>>=
+p <- 1-pnorm(2,0,1); p
+@
+   Integral's integrand function : $f(x) = \frac{e^{\frac{-x^2}{2}}}{\sqrt(2*pi)}$ which is similar to the normal distribution.
+$P(X > 2)$
+
+\subsubsection{(c)}
+<<>>=
+set.seed(1111)
+
+g <- function(y){1/y^2 * exp(-(1/y)^2/2)/sqrt(2*pi)}
+
+m=20000
+x <- runif(m,0,1/2)
+
+I.mc1 <- (1/2-0) * mean(g(x)); I.mc1
+# 0.02301548
+V.mc1 <- (1/2-0)^2 * var(g(x))/m; V.mc1
+# 5.579652e-08
+@
+
+\subsubsection{(d)}
+
+<<>>=
+set.seed(1111)
+
+# Naive MC Estimator - Interval 0 to 1.
+set.seed(1111)
+
+g <- function(y){((exp(-1/(2*y^2)) * (1/y^2))- (exp((-(-(x+1))^2)/2)))/sqrt(2*pi)}
+#g <- function(y){(exp((-(1/((x-1)^2))/2)))/(sqrt(2*pi) * ((x-1)^2))}
+m=20000
+x <- runif(m,0,1)
+
+I.mc2 <- (1-0) * mean(g(x)); I.mc2
+# 0.02408417
+V.mc2 <- var(g(x))/m; V.mc2
+# 1.543204e-06
+@
+
+   As x gets bigger, values tend to 0, so when we calculate the integral to the interval [0,1], we will get
+bigger results than the interval [2,Inf].
+
+
+\subsubsection{(e)}
+
+<<>>=
+set.seed(1111)
+
+f <- function(y){((exp(-1/(2*y^2)) * (1/y^2))- (exp((-(x+1)^2)/2)))/sqrt(2*pi)}
+
+m=20000
+x=runif(m/2,0,1)
+
+I.hat1=mean(f(x))
+I.hat2=mean(f(1-x))
+I.a =(I.hat1+I.hat2)/2; I.a
+# 0.02287152
+V.a <- 1/m*(1+cor(f(x),f(1-x)))*var(f(x)); V.a
+# 4.167622e-07
+
+# control-variate technique
+set.seed(1111)
+
+f <- function(y){((exp(-1/(2*y^2)) * (1/y^2))- (exp((-(x+1)^2)/2)))/sqrt(2*pi)}
+g <- function(y){y}
+
+m = 20000
+u1 = runif(m)
+cast = -(cov(u1,f(u1)))/var(u1)
+cast
+# -0.3850052
+x = runif(m,0,1)
+
+I.c <- mean(f(x)+cast*(g(x)-0.5)); I.c
+# 0.02222363
+V.c <- var(f(x))*(1-cor(f(x),g(x))^2)/m; V.c
+# 1.529684e-07
+@
+
+
+\subsubsection{(f)}
+<<>>=
+100*(1-(V.c/V.mc2))
+# 90.08761
+
+100*(1-(V.a/V.mc2))
+# 72.9937
+
+res <- matrix(0,3,3)
+colnames(res) <- c("Naive MC", "Ant MC", "Control MC")
+rownames(res) <- c("Estimate", "Variance","% var red")
+res[1,] <- round(c(I.mc2, I.a, I.c),6)
+res[2,] <- round(c(V.mc2, V.a, V.c),9)
+res[3,] <- c("-", round(100*(1-V.a/V.mc2),1), round(100*(1-V.c/V.mc2),1))
+res
+@
+
+\subsubsection{(g)}
+<<>>=
+set.seed(1111);
+m = 20000
+h <- function(y){((exp(-1/(2*y^2)) * (1/y^2))- (exp((-(x+1)^2)/2)))/sqrt(2*pi)}
+u = runif(m,0,1)
+x = 2/(1-u) # 1-2/x => x = 2/(1-u)
+I.hat.is <- mean(h(x)); I.hat.is
+# 0.03015236
+V.is <- var(h(x))/m; V.is
+# 3.353631e-08
+
+# % variance reduction to MC2
+100*(1-V.is/V.mc2)
+# 97.82684
+
+# % variance reduction to MC1
+100*(1-V.is/V.mc1)
+# 39.89533
+@ 
+
+
+\end{document}
+ 
